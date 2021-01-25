@@ -1,0 +1,39 @@
+<?php
+
+namespace App\Traits;
+
+use GuzzleHttp\Client;
+
+trait ConsumeExternalServices
+{
+    public function makeRequest($method, $requestUrl, $queryParams = [], $formParams = [], $headers = [], $isJsonRequest = false)
+    {
+        $client = new Client([
+            'base_uri' => $this->baseUri
+        ]);
+
+        //Resolver authorizacion
+        if (method_exists($this, 'resolveAuthorization')) {
+
+            $this->resolveAuthorization($queryParams, $formParams, $headers);
+        }
+
+
+        $response = $client->request($method, $requestUrl, [
+            $isJsonRequest ? 'json' : 'form_params' => $formParams,
+            'headers' => $headers,
+            'query' => $queryParams
+        ]);
+
+
+        $response = $response->getBody()->getContents();
+
+        //Decodificar la respesuta
+        if (method_exists($this, 'decodeResponse')) {
+
+            $response = $this->decodeResponse($response);
+        }
+
+        return $response;
+    }
+}
